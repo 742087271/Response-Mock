@@ -73,7 +73,8 @@ src/
 ├── background/
 │   └── service-worker.js  # 后台服务脚本（规则管理）
 ├── content/
-│   └── content-script.js  # 内容脚本（Fetch/XHR 拦截）
+│   ├── content-bridge.js  # 扩展环境桥接脚本（读取规则并同步到页面）
+│   └── content-inject.js  # 页面环境注入脚本（Fetch/XHR 拦截）
 ├── popup/
 │   ├── popup.html         # 弹窗页面
 │   ├── popup.css
@@ -98,7 +99,7 @@ src/
 
 - **Manifest V3** — 使用 Chrome 最新扩展规范
 - **拦截原理** — 通过重写页面内的 `window.fetch` 和 `XMLHttpRequest` 实现拦截
-- **数据存储** — 使用 `chrome.storage.sync` 存储规则配置
+- **数据存储** — 使用 `chrome.storage.local` 存储规则、配置和最近 200 条日志
 - **无框架依赖** — 纯 HTML + CSS + Vanilla JS 构建
 
 ---
@@ -115,4 +116,4 @@ src/
 > 当前版本不支持 WebSocket 拦截，可通过其他工具（如 Proxyman、Charles）实现。
 
 **Q: 规则如何同步到其他设备？**
-> 规则存储在 Chrome Sync 中，登录同一 Google 账号即可自动同步。
+> 当前版本使用 `chrome.storage.local` 保存在本机，不会自动同步到其他设备。可以通过导入 / 导出功能备份和迁移规则。

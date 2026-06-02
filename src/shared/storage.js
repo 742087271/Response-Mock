@@ -83,11 +83,14 @@ export async function notifyContentScript(tabId) {
 export async function broadcastRulesUpdate() {
   try {
     const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-      if (tab.id && tab.url && !tab.url.startsWith('chrome://')) {
-        notifyContentScript(tabId).catch(() => {});
-      }
-    }
+    await Promise.all(
+      tabs.map(tab => {
+        if (tab.id && tab.url && !tab.url.startsWith('chrome://')) {
+          return notifyContentScript(tab.id);
+        }
+        return Promise.resolve();
+      })
+    );
   } catch {
     // 忽略错误
   }

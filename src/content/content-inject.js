@@ -106,6 +106,17 @@
     };
   }
 
+  function dispatchXhrEvent(xhr, type) {
+    if (typeof xhr.dispatchEvent === 'function') {
+      xhr.dispatchEvent(new Event(type));
+      return;
+    }
+    const handler = xhr[`on${type}`];
+    if (typeof handler === 'function') {
+      handler.call(xhr, { type, target: xhr });
+    }
+  }
+
   // ---- 页面内可视化 ----
 
   function showOverlay(method, url, rule) {
@@ -220,8 +231,9 @@
         });
         logInterception(method, url, matched, 'xhr');
         setTimeout(() => {
-          if (this.onreadystatechange) this.onreadystatechange({ target: this });
-          if (this.onload) this.onload({ target: this });
+          dispatchXhrEvent(this, 'readystatechange');
+          dispatchXhrEvent(this, 'load');
+          dispatchXhrEvent(this, 'loadend');
         }, matched.delay || 0);
         return;
       }

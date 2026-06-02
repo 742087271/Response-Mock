@@ -3,6 +3,7 @@
 // 默认配置
 export const DEFAULT_CONFIG = {
   enabled: true,
+  showOverlay: true,
   autoOpenPanel: false,
   maxLogEntries: 200,
   notifications: true,

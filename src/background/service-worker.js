@@ -52,7 +52,7 @@ async function handleMessage(message, sender) {
       return toggleRuleResponse(message.id);
 
     case 'TOGGLE_GLOBAL_ENABLED':
-      await saveConfig({ enabled: message.enabled });
+      await mergeConfig({ enabled: message.enabled });
       broadcastRules(); // 广播到所有页面
       return { success: true };
 
@@ -60,7 +60,7 @@ async function handleMessage(message, sender) {
       return { config: await getConfig() };
 
     case 'SAVE_CONFIG':
-      await saveConfig(message.config);
+      await mergeConfig(message.config);
       broadcastRules(); // 广播到所有页面
       return { success: true };
 
@@ -117,6 +117,11 @@ async function handleMessage(message, sender) {
     default:
       return { error: 'Unknown message type' };
   }
+}
+
+async function mergeConfig(updates = {}) {
+  const config = await getConfig();
+  await saveConfig({ ...config, ...updates });
 }
 
 // ---- Rule 操作 ----

@@ -36,6 +36,12 @@ async function saveAllRules(rules) {
   await chrome.storage.local.set({ [STORAGE_KEYS.RULES]: rules });
 }
 
+async function saveConfigUpdates(updates) {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.CONFIG);
+  const config = result[STORAGE_KEYS.CONFIG] || {};
+  await chrome.storage.local.set({ [STORAGE_KEYS.CONFIG]: { ...config, ...updates } });
+}
+
 // ---- DOM ----
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
@@ -71,11 +77,8 @@ function bindEvents() {
   // 全局开关
   $('#globalToggle').addEventListener('change', async () => {
     globalEnabled = $('#globalToggle').checked;
-    const result = await chrome.storage.local.get(STORAGE_KEYS.CONFIG);
-    const config = result[STORAGE_KEYS.CONFIG] || {};
-    config.enabled = globalEnabled;
-    await chrome.storage.local.set({ [STORAGE_KEYS.CONFIG]: config });
-    try { chrome.runtime.sendMessage({ type: 'TOGGLE_ENABLED', enabled: globalEnabled }).catch(() => {}); } catch (e) {}
+    await saveConfigUpdates({ enabled: globalEnabled });
+    await refreshRulesInTabs();
   });
 
   // Tab 切换
@@ -458,9 +461,7 @@ async function saveRule() {
   renderStats();
   closeModal();
   // 通知所有标签页刷新规则
-  try {
-    chrome.runtime.sendMessage({ type: 'REFRESH_RULES' }).catch(() => {});
-  } catch (e) {}
+  await refreshRulesInTabs();
 }
 
 // ---- Delete ----
@@ -482,7 +483,7 @@ async function confirmDelete() {
   renderStats();
   $('#deleteModal').style.display = 'none';
   currentDeleteId = null;
-  try { chrome.runtime.sendMessage({ type: 'REFRESH_RULES' }).catch(() => {}); } catch (e) {}
+  await refreshRulesInTabs();
 }
 
 // ---- Toggle & Clone ----
@@ -492,7 +493,7 @@ async function toggleRule(id) {
   await saveAllRules(allRules);
   applyRulesFilter();
   renderStats();
-  try { chrome.runtime.sendMessage({ type: 'REFRESH_RULES' }).catch(() => {}); } catch (e) {}
+  await refreshRulesInTabs();
 }
 
 async function cloneRule(id) {
@@ -508,7 +509,7 @@ async function cloneRule(id) {
   await saveAllRules(allRules);
   applyRulesFilter();
   renderStats();
-  try { chrome.runtime.sendMessage({ type: 'REFRESH_RULES' }).catch(() => {}); } catch (e) {}
+  await refreshRulesInTabs();
 }
 
 async function bulkToggle(enable) {
@@ -517,7 +518,7 @@ async function bulkToggle(enable) {
   await saveAllRules(allRules);
   applyRulesFilter();
   renderStats();
-  try { chrome.runtime.sendMessage({ type: 'REFRESH_RULES' }).catch(() => {}); } catch (e) {}
+  await refreshRulesInTabs();
 }
 
 // ---- Logs ----
@@ -593,13 +594,12 @@ async function clearLogs() {
 
 // ---- Settings ----
 async function saveSettings() {
-  const config = {
+  await saveConfigUpdates({
     showOverlay: $('#settingShowOverlay').checked,
     notifications: $('#settingNotifications').checked,
     enabled: globalEnabled,
-  };
-  await chrome.storage.local.set({ [STORAGE_KEYS.CONFIG]: config });
-  try { chrome.runtime.sendMessage({ type: 'TOGGLE_ENABLED', enabled: globalEnabled }).catch(() => {}); } catch (e) {}
+  });
+  await refreshRulesInTabs();
 }
 
 async function resetRules() {
@@ -609,7 +609,7 @@ async function resetRules() {
   applyRulesFilter();
   renderStats();
   $('#resetModal').style.display = 'none';
-  try { chrome.runtime.sendMessage({ type: 'REFRESH_RULES' }).catch(() => {}); } catch (e) {}
+  await refreshRulesInTabs();
 }
 
 // ---- Import/Export ----
@@ -634,7 +634,7 @@ async function handleImport() {
     await loadData();
     applyRulesFilter();
     renderStats();
-    notifyAllTabs({ type: 'REFRESH_RULES' });
+    await refreshRulesInTabs();
     alert('导入成功！');
   } catch (e) {
     alert('导入失败：文件格式错误');
@@ -719,14 +719,24 @@ function sendMessage(msg) {
   });
 }
 
-function notifyAllTabs(msg) {
-  chrome.tabs.query({}).then(tabs => {
-    tabs.forEach(tab => {
+async function refreshRulesInTabs() {
+  try {
+    await chrome.runtime.sendMessage({ type: 'REFRESH_RULES' });
+  } catch (e) {
+    await notifyAllTabs({ type: 'REFRESH_RULES' });
+  }
+}
+
+async function notifyAllTabs(msg) {
+  const tabs = await chrome.tabs.query({});
+  await Promise.all(
+    tabs.map(tab => {
       if (tab.id && tab.url && !tab.url.startsWith('chrome://')) {
-        chrome.tabs.sendMessage(tab.id, msg).catch(() => {});
+        return chrome.tabs.sendMessage(tab.id, msg).catch(() => {});
       }
-    });
-  });
+      return Promise.resolve();
+    })
+  );
 }
 
 function escapeHtml(str) {

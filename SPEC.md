@@ -28,8 +28,8 @@
 - 日志面板：查看已拦截的请求记录（时间、URL、方法、状态）
 
 ### 2.4 持久化
-- 规则存储在 Chrome Storage（同步至云端）
-- 日志保留最近 200 条（内存中）
+- 规则和配置存储在 `chrome.storage.local`
+- 日志保留最近 200 条，存储在 `chrome.storage.local`
 
 ## 3. UI / UX 设计方向
 
@@ -53,8 +53,8 @@
 
 - **Manifest V3**（Chrome 扩展最新版）
 - **前端**: 纯 HTML + CSS + Vanilla JS，无框架依赖
-- **存储**: `chrome.storage.sync` 存储规则配置
-- **拦截**: `chrome.webRequest.onBeforeRequest` + `chrome.webNavigation`
+- **存储**: `chrome.storage.local` 存储规则、配置和日志
+- **拦截**: 在页面环境重写 `window.fetch` 和 `XMLHttpRequest`
 - **通信**: `chrome.runtime.sendMessage` / `onMessage`
 
 ## 5. 文件结构
@@ -65,7 +65,8 @@ src/
 ├── background/
 │   └── service-worker.js      # 后台服务脚本
 ├── content/
-│   └── content-script.js      # 内容脚本（拦截逻辑）
+│   ├── content-bridge.js      # 扩展环境桥接脚本
+│   └── content-inject.js      # 页面环境拦截脚本
 ├── popup/
 │   ├── popup.html              # 弹窗页面
 │   ├── popup.css
