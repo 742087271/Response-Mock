@@ -15,9 +15,29 @@
   let currentRules = [];
   let globalEnabled = true;
   let config = { showOverlay: true };
+  let extensionContextValid = true;
+
+  function isExtensionContextInvalidated(error) {
+    const text = [
+      error?.message,
+      error?.stack,
+      error?.name,
+      String(error),
+    ].filter(Boolean).join(' ');
+    return text.includes('Extension context invalidated')
+      || text.includes('context invalidated')
+      || text.includes('Extension context');
+  }
+
+  function markContextInvalidIfNeeded(error) {
+    if (!isExtensionContextInvalidated(error)) return false;
+    extensionContextValid = false;
+    return true;
+  }
 
   // ---- 直接从 chrome.storage.local 读取（不经过 service worker）----
   async function loadRules() {
+    if (!extensionContextValid) return;
     try {
       const [rulesResult, configResult] = await Promise.all([
         chrome.storage.local.get('mock_rules'),
@@ -33,6 +53,7 @@
 
       pushRulesToMainWorld();
     } catch (e) {
+      if (markContextInvalidIfNeeded(e)) return;
       console.warn('[Response Mock] Bridge failed to load rules:', e);
     }
   }
@@ -50,6 +71,7 @@
 
   // ---- 直接写 storage.local 记录日志（最可靠的方案）----
   async function writeLog(entry) {
+    if (!extensionContextValid) return;
     try {
       const result = await chrome.storage.local.get('mock_logs');
       const logs = result.mock_logs || [];
@@ -57,6 +79,7 @@
       if (logs.length > 200) logs.splice(200);
       await chrome.storage.local.set({ mock_logs: logs });
     } catch (e) {
+      if (markContextInvalidIfNeeded(e)) return;
       console.warn('[Response Mock] Failed to write log:', e);
     }
   }

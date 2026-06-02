@@ -123,12 +123,12 @@
     const isMatched = !!rule;
     const toast = document.createElement('div');
     toast.id = '__resp-mock-toast__';
-    toast.innerHTML = [
-      `<span class="mock-badge ${isMatched ? 'mock-matched' : 'mock-pass'}">${isMatched ? 'MOCKED' : 'PASS'}</span>`,
-      `<span class="mock-method">${method}</span>`,
-      `<span class="mock-url">${truncateUrl(url)}</span>`,
-      isMatched ? `<span class="mock-rule">${escapeHtml(rule.name || '规则')}</span>` : '',
-    ].join('');
+    toast.appendChild(createToastPart('mock-badge', isMatched ? 'MOCKED' : 'PASS', isMatched ? 'mock-matched' : 'mock-pass'));
+    toast.appendChild(createToastPart('mock-method', method));
+    toast.appendChild(createToastPart('mock-url', truncateUrl(url)));
+    if (isMatched) {
+      toast.appendChild(createToastPart('mock-rule', rule.name || '规则'));
+    }
     const style = document.createElement('style');
     style.textContent = [
       '#__resp-mock-toast__{position:fixed;bottom:16px;right:16px;z-index:2147483647;display:flex;align-items:center;gap:8px;',
@@ -159,10 +159,11 @@
     } catch { return url.length > 60 ? url.slice(0, 57) + '...' : url; }
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  function createToastPart(className, text, extraClassName = '') {
+    const span = document.createElement('span');
+    span.className = extraClassName ? `${className} ${extraClassName}` : className;
+    span.textContent = text;
+    return span;
   }
 
   // ---- 注入拦截逻辑 ----
