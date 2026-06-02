@@ -19,7 +19,6 @@
     currentRules = detail.rules || [];
     globalEnabled = detail.enabled !== false;
     config = detail.config || { showOverlay: true };
-    console.log('[Response Mock] Rules updated from bridge. count:', currentRules.length);
   }
 
   // 监听 bridge 通过 document 派发的规则更新事件（document 是跨 world 可见的）
@@ -177,8 +176,6 @@
       const method = req.method || 'GET';
 
       const matched = findMatch(url, method);
-      console.log('[Response Mock] fetch intercepted:', method, url);
-      console.log('[Response Mock] rules:', currentRules.length, '| matched:', matched ? matched.name : 'NONE');
 
       if (matched && globalEnabled) {
         return handleMockedResponse(req, matched);
@@ -247,5 +244,4 @@
   // ---- 启动 ----
   // 拦截器立即生效（初始 rules=[]，bridge 会通过事件同步过来）
   injectInterceptor();
-  console.log('[Response Mock] Main world interceptor ready. Waiting for rules from bridge...');
 })();

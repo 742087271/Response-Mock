@@ -197,16 +197,10 @@ async function ensureSampleRules() {
   const existingRules = await getRules();
   if (!existingRules || existingRules.length === 0) {
     await saveRules(SAMPLE_RULES);
-    console.log('[Response Mock] Sample rules initialized.');
   }
 }
 
-chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason === 'install') {
-    console.log('[Response Mock] Extension installed.');
-  } else if (details.reason === 'update') {
-    console.log('[Response Mock] Extension updated.');
-  }
+chrome.runtime.onInstalled.addListener(async () => {
   // 无论是安装还是更新，都确保有示例规则（防止 storage 被清空）
   await ensureSampleRules();
 });
@@ -214,7 +208,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // ---- 启动时加载配置 ----
 
 chrome.runtime.onStartup.addListener(async () => {
-  console.log('[Response Mock] Browser started.');
   await ensureSampleRules();
 });
 
@@ -223,11 +216,7 @@ chrome.runtime.onStartup.addListener(async () => {
 // 用 chrome.alarms 定期触发，保持 Service Worker 存活
 chrome.alarms.create('keepAlive', { periodInMinutes: 0.4 }); // ~24秒触发一次
 
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'keepAlive') {
-    console.log('[Response Mock] keep-alive ping');
-  }
-});
+chrome.alarms.onAlarm.addListener(() => {});
 
 // ---- 迁移旧数据：sync → local ----
 async function migrateFromSyncToLocal() {
@@ -241,11 +230,9 @@ async function migrateFromSyncToLocal() {
     // 如果 local 为空但 sync 有数据，迁移过来
     if ((!localRules.mock_rules || localRules.mock_rules.length === 0) && syncRules.mock_rules?.length > 0) {
       await chrome.storage.local.set({ mock_rules: syncRules.mock_rules });
-      console.log('[Response Mock] Migrated rules from sync to local:', syncRules.mock_rules.length);
     }
     if (!localConfig.mock_config && syncConfig.mock_config) {
       await chrome.storage.local.set({ mock_config: syncConfig.mock_config });
-      console.log('[Response Mock] Migrated config from sync to local');
     }
   } catch (e) {
     console.warn('[Response Mock] Migration failed:', e);
@@ -255,5 +242,3 @@ async function migrateFromSyncToLocal() {
 ensureSampleRules(); // 确保 storage 有示例规则
 
 migrateFromSyncToLocal(); // 异步迁移，不阻塞
-
-console.log('[Response Mock] Service worker started.');
