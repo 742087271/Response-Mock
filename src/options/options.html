@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Response Mock - 设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+
+  <div class="options-root">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 17l10 5 10-5" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 12l10 5 10-5" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <h1 class="sidebar-title">Response Mock</h1>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="rules">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          规则管理
+        </button>
+        <button class="nav-item" data-tab="logs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          拦截日志
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+          设置
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <label class="global-toggle-label">
+          <span>全局开关</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="globalToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </label>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- ====== Rules Tab ====== -->
+      <section class="tab-panel" id="tab-rules">
+
+        <!-- Panel Header -->
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">规则管理</h2>
+            <p class="panel-desc">创建和管理 API 拦截规则，匹配到的请求将被 Mock 数据替代</p>
+          </div>
+          <button class="btn btn-primary" id="btnAddRule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            添加规则
+          </button>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar">
+          <div class="stat-item">
+            <span class="stat-value" id="statTotal">0</span>
+            <span class="stat-label">总规则</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value stat-active" id="statEnabled">0</span>
+            <span class="stat-label">已启用</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value stat-inactive" id="statDisabled">0</span>
+            <span class="stat-label">已停用</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value" id="statIntercepted">0</span>
+            <span class="stat-label">已拦截</span>
+          </div>
+        </div>
+
+        <!-- Search & Filter Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="搜索规则名称、URL 或备注...">
+          </div>
+          <div class="filter-group">
+            <select id="filterMethod">
+              <option value="">全部方法</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+            </select>
+            <select id="filterStatus">
+              <option value="">全部状态</option>
+              <option value="2xx">2xx 成功</option>
+              <option value="4xx">4xx 客户端错误</option>
+              <option value="5xx">5xx 服务器错误</option>
+            </select>
+            <select id="filterEnabled">
+              <option value="">全部状态</option>
+              <option value="enabled">已启用</option>
+              <option value="disabled">已停用</option>
+            </select>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn btn-secondary" id="btnClearFilters">清除筛选</button>
+            <button class="btn btn-secondary" id="btnBulkEnable">批量启用</button>
+            <button class="btn btn-secondary" id="btnBulkDisable">批量停用</button>
+          </div>
+        </div>
+
+        <!-- Rules Table -->
+        <div class="table-container">
+          <table class="rules-table" id="rulesTable">
+            <thead>
+              <tr>
+                <th class="th-toggle"></th>
+                <th class="th-name">规则名称</th>
+                <th class="th-method">方法</th>
+                <th class="th-url">URL 匹配</th>
+                <th class="th-status">状态码</th>
+                <th class="th-delay">延迟</th>
+                <th class="th-actions">操作</th>
+              </tr>
+            </thead>
+            <tbody id="rulesTableBody">
+              <!-- 动态渲染 -->
+            </tbody>
+          </table>
+          <div class="empty-state" id="emptyState" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+              <path d="M9 12h6M9 16h4"/>
+            </svg>
+            <p>暂无规则</p>
+            <span>点击右上角「添加规则」开始配置</span>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+          <span class="pagination-info" id="paginationInfo">显示 0 条</span>
+          <div class="pagination-controls">
+            <button class="btn btn-secondary btn-sm" id="btnPrevPage">上一页</button>
+            <span class="pagination-pages" id="paginationPages">1 / 1</span>
+            <button class="btn btn-secondary btn-sm" id="btnNextPage">下一页</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====== Logs Tab ====== -->
+      <section class="tab-panel" id="tab-logs" style="display:none;">
+
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">拦截日志</h2>
+            <p class="panel-desc">查看已拦截的请求记录（仅保存在内存中，刷新页面后清空）</p>
+          </div>
+          <div class="panel-header-actions">
+            <button class="btn btn-secondary" id="btnClearLogs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              </svg>
+              清空日志
+            </button>
+            <button class="btn btn-secondary" id="btnRefreshLogs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+              </svg>
+              刷新
+            </button>
+          </div>
+        </div>
+
+        <!-- Log Filters -->
+        <div class="log-filters">
+          <div class="log-stat">
+            <span class="log-stat-value" id="logTotalCount">0</span>
+            <span class="log-stat-label">条记录</span>
+          </div>
+          <div class="log-stat log-stat-matched">
+            <span class="log-stat-value" id="logMatchedCount">0</span>
+            <span class="log-stat-label">已拦截</span>
+          </div>
+          <div class="log-stat log-stat-pass">
+            <span class="log-stat-value" id="logPassCount">0</span>
+            <span class="log-stat-label">已通过</span>
+          </div>
+          <div class="filter-group">
+            <select id="logFilterType">
+              <option value="">全部类型</option>
+              <option value="fetch">Fetch</option>
+              <option value="xhr">XHR</option>
+            </select>
+            <select id="logFilterMatched">
+              <option value="">全部</option>
+              <option value="matched">已拦截</option>
+              <option value="pass">已通过</option>
+            </select>
+          </div>
+          <input type="text" id="logSearchInput" placeholder="搜索 URL..." class="log-search">
+        </div>
+
+        <!-- Log List -->
+        <div class="log-list" id="logList"></div>
+        <div class="empty-state" id="logEmptyState" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          <p>暂无拦截记录</p>
+          <span>访问页面并发送请求后，这里会显示记录</span>
+        </div>
+
+      </section>
+
+      <!-- ====== Settings Tab ====== -->
+      <section class="tab-panel" id="tab-settings" style="display:none;">
+
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">设置</h2>
+            <p class="panel-desc">配置扩展全局行为</p>
+          </div>
+        </div>
+
+        <div class="settings-sections">
+
+          <!-- General Settings -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">通用设置</h3>
+            <div class="settings-card">
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <span class="settings-item-label">显示页面内浮层</span>
+                  <span class="settings-item-desc">拦截请求后在页面右下角显示提示信息</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="settingShowOverlay" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <span class="settings-item-label">桌面通知</span>
+                  <span class="settings-item-desc">请求被拦截时显示 Chrome 通知</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="settingNotifications" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <span class="settings-item-label">同步到云端</span>
+                  <span class="settings-item-desc">使用 Chrome 同步将规则同步到所有设备</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="settingSync" checked disabled>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Management -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">数据管理</h3>
+            <div class="settings-card">
+              <div class="settings-item settings-item-row">
+                <div class="settings-item-info">
+                  <span class="settings-item-label">导出规则</span>
+                  <span class="settings-item-desc">将所有规则和设置导出为 JSON 文件</span>
+                </div>
+                <button class="btn btn-secondary" id="btnExportSettings">导出</button>
+              </div>
+              <div class="settings-item settings-item-row">
+                <div class="settings-item-info">
+                  <span class="settings-item-label">导入规则</span>
+                  <span class="settings-item-desc">从 JSON 文件恢复规则和设置</span>
+                </div>
+                <button class="btn btn-secondary" id="btnImportSettings">导入</button>
+                <input type="file" id="importFileSettings" accept=".json" style="display:none;">
+              </div>
+              <div class="settings-item settings-item-row">
+                <div class="settings-item-info">
+                  <span class="settings-item-label">重置所有规则</span>
+                  <span class="settings-item-desc">删除所有规则，恢复到初始示例规则状态</span>
+                </div>
+                <button class="btn btn-danger" id="btnResetRules">重置</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- About -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">关于</h3>
+            <div class="settings-card">
+              <div class="about-info">
+                <p><strong>Response Mock</strong> v1.0.0</p>
+                <p>一个轻量的浏览器扩展，用于拦截和修改 API 响应数据。</p>
+                <p class="about-tech">基于 Chrome Manifest V3 构建</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Add/Edit Rule Modal -->
+  <div class="modal-overlay" id="ruleModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">添加规则</h2>
+        <button class="btn-close" id="btnModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>规则名称 <span class="required">*</span></label>
+          <input type="text" id="ruleName" placeholder="例如：Mock 用户信息">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>HTTP 方法</label>
+            <select id="ruleMethod">
+              <option value="*">全部</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+              <option value="OPTIONS">OPTIONS</option>
+              <option value="HEAD">HEAD</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>响应状态码</label>
+            <input type="number" id="ruleStatus" value="200" min="100" max="599">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>URL 匹配规则 <span class="required">*</span></label>
+          <input type="text" id="ruleUrl" placeholder="https://api.example.com/users/* 或 */api/user*">
+          <small class="hint">支持 * 作为通配符，例如 */api/users/* 匹配所有用户相关接口</small>
+        </div>
+        <div class="form-group">
+          <label>响应延迟 (ms)</label>
+          <input type="number" id="ruleDelay" value="0" min="0" max="30000" step="100">
+          <small class="hint">设置响应延迟，用于模拟慢速网络或测试加载状态</small>
+        </div>
+        <div class="form-group">
+          <label>响应头</label>
+          <div class="headers-editor" id="headersEditor">
+            <div class="header-row" data-index="0">
+              <input type="text" class="header-key" placeholder="Header Name" value="Content-Type">
+              <input type="text" class="header-val" placeholder="Header Value" value="application/json">
+              <button class="btn-icon btn-remove-header" title="删除">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnAddHeader">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            添加响应头
+          </button>
+        </div>
+        <div class="form-group">
+          <label>响应体 (JSON) <span class="required">*</span></label>
+          <textarea id="ruleBody" rows="10" placeholder='{"code": 0, "data": {"name": "Mock User"}}'></textarea>
+          <div class="json-actions">
+            <button class="btn-link" id="btnPasteResponse" title="从剪贴板粘贴响应体（先在 DevTools Network 复制）">📋 粘贴响应</button>
+            <button class="btn-link" id="btnFormatJson">格式化</button>
+            <button class="btn-link" id="btnMinifyJson">压缩</button>
+            <button class="btn-link" id="btnValidateJson">校验</button>
+          </div>
+          <div class="json-error" id="jsonError" style="display:none;"></div>
+        </div>
+        <div class="form-group">
+          <label>备注</label>
+          <input type="text" id="ruleDescription" placeholder="可选，用于说明此规则的用途">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelRule">取消</button>
+        <button class="btn btn-primary" id="btnSaveRule">保存规则</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Reset Modal -->
+  <div class="modal-overlay" id="resetModal" style="display:none;">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>确认重置</h2>
+        <button class="btn-close" id="btnResetModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>确定要重置所有规则吗？</p>
+        <p class="text-muted">所有自定义规则将被删除，并恢复为初始示例规则。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelReset">取消</button>
+        <button class="btn btn-danger" id="btnConfirmReset">确认重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay" id="deleteModal" style="display:none;">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>确认删除</h2>
+        <button class="btn-close" id="btnDeleteModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>确定要删除规则「<strong id="deleteRuleName"></strong>」吗？</p>
+        <p class="text-muted">此操作无法撤销。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelDelete">取消</button>
+        <button class="btn btn-danger" id="btnConfirmDelete">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>

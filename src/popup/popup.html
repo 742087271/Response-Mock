@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400">
+  <title>Response Mock</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-root">
+
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="header-left">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 17l10 5 10-5" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 12l10 5 10-5" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <h1 class="popup-title">Response Mock</h1>
+      </div>
+      <div class="header-right">
+        <label class="toggle-switch" title="总开关">
+          <input type="checkbox" id="globalToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+        <button class="btn-icon" id="btnSettings" title="设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="搜索规则名称或 URL...">
+      </div>
+      <button class="btn btn-primary" id="btnAddRule">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        添加规则
+      </button>
+    </div>
+
+    <!-- Rule List -->
+    <div class="rule-list" id="ruleList">
+      <!-- 动态渲染 -->
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/>
+        <path d="M9 12h6M9 16h4"/>
+      </svg>
+      <p>暂无规则</p>
+      <span>点击上方「添加规则」开始配置</span>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span id="statusText">加载中...</span>
+      <div class="status-actions">
+        <button class="btn-link" id="btnExport">导出</button>
+        <span class="divider">|</span>
+        <button class="btn-link" id="btnImport">导入</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Add/Edit Rule Modal -->
+  <div class="modal-overlay" id="ruleModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">添加规则</h2>
+        <button class="btn-close" id="btnModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>规则名称 <span class="required">*</span></label>
+          <input type="text" id="ruleName" placeholder="例如：Mock 用户信息">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>HTTP 方法</label>
+            <select id="ruleMethod">
+              <option value="*">全部</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+              <option value="OPTIONS">OPTIONS</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>响应状态码</label>
+            <input type="number" id="ruleStatus" value="200" min="100" max="599">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>URL 匹配规则 <span class="required">*</span></label>
+          <input type="text" id="ruleUrl" placeholder="例如：https://api.example.com/users/* 或 */api/user*">
+          <small class="hint">支持 * 作为通配符匹配任意字符</small>
+        </div>
+        <div class="form-group">
+          <label>响应延迟 (ms)</label>
+          <input type="number" id="ruleDelay" value="0" min="0" max="10000" step="100">
+          <small class="hint">设置响应延迟时间，用于测试加载状态</small>
+        </div>
+        <div class="form-group">
+          <label>响应体 (JSON) <span class="required">*</span></label>
+          <textarea id="ruleBody" rows="8" placeholder='{"code": 0, "data": {"name": "Mock User"}}'></textarea>
+          <div class="json-actions">
+            <button class="btn-link" id="btnPasteResponse" title="从剪贴板粘贴响应体（先在 DevTools Network 复制）">📋 粘贴响应</button>
+            <button class="btn-link" id="btnFormatJson">格式化</button>
+            <button class="btn-link" id="btnMinifyJson">压缩</button>
+          </div>
+          <div class="json-error" id="jsonError" style="display:none;"></div>
+        </div>
+        <div class="form-group">
+          <label>备注</label>
+          <input type="text" id="ruleDescription" placeholder="可选，用于说明此规则的用途">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelRule">取消</button>
+        <button class="btn btn-primary" id="btnSaveRule">保存规则</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay" id="deleteModal" style="display:none;">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>确认删除</h2>
+        <button class="btn-close" id="btnDeleteModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>确定要删除规则「<strong id="deleteRuleName"></strong>」吗？</p>
+        <p class="text-muted">此操作无法撤销。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelDelete">取消</button>
+        <button class="btn btn-danger" id="btnConfirmDelete">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input for Import -->
+  <input type="file" id="importFileInput" accept=".json" style="display:none;">
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
