@@ -5,6 +5,7 @@
   --bg-secondary: #252526;
   --bg-tertiary: #2d2d2d;
   --bg-hover: #323232;
+  --bg-input: #2a2d2e;
   --border: #3c3c3c;
   --border-light: #454545;
   --text-primary: #cccccc;
@@ -923,6 +924,8 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 8px;
+  position: relative;
+  z-index: 10;
 }
 
 .json-search-panel { display: none; }
@@ -1028,13 +1031,14 @@ body {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
+  width: 100%;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 6px 24px rgba(0,0,0,0.4);
   max-height: 280px;
   overflow-y: auto;
-  z-index: 200;
+  z-index: 9999;
   display: none;
 }
 
@@ -1111,5 +1115,125 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.modal-overlay { animation: fadeIn 0.2s ease; }
-.modal { animation: slideUp 0.2s ease; }
+/* ==================== Vanilla JSONEditor Dark Theme Override ==================== */
+.json-editor-shell,
+.json-editor-shell * {
+  box-sizing: border-box;
+}
+
+.json-editor-shell {
+  background: var(--bg-secondary) !important;
+}
+
+.json-editor-shell .jsoneditor,
+.json-editor-shell .jsoneditor-grip {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+.json-editor-shell .jsoneditor td {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-value {
+  color: var(--text-primary) !important;
+}
+
+.json-editor-shell .jsoneditor-key {
+  color: var(--accent-green) !important;
+}
+
+.json-editor-shell .jsoneditor-string {
+  color: #ce9178 !important;
+}
+
+.json-editor-shell .jsoneditor-number {
+  color: #b5cea8 !important;
+}
+
+.json-editor-shell .jsoneditor-boolean {
+  color: #569cd6 !important;
+}
+
+.json-editor-shell .jsoneditor-const {
+  color: #569cd6 !important;
+}
+
+.json-editor-shell .jsoneditor-null {
+  color: var(--text-muted) !important;
+}
+
+.json-editor-shell .jsoneditor td:first-child {
+  border-left-color: var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-btn {
+  color: var(--text-secondary) !important;
+}
+
+.json-editor-shell .jsoneditor-btn:hover {
+  color: var(--text-primary) !important;
+}
+
+.json-editor-shell .jsoneditor td.jsoneditor-tree {
+  border-color: var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu {
+  background: var(--bg-secondary) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu button {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu button:hover {
+  background: var(--bg-hover) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu button.jsoneditor-selected {
+  background: var(--accent) !important;
+}
+
+.json-editor-shell .jsoneditor-menu {
+  background: var(--bg-tertiary) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-menu button {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
+.json-editor-shell .jsoneditor-menu button:hover {
+  color: var(--text-primary) !important;
+  background: var(--bg-hover) !important;
+}
+
+.json-editor-shell .jsoneditor-navigation-bar {
+  background: var(--bg-tertiary) !important;
+  border-top: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.json-editor-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
+.json-editor-shell ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+.json-editor-shell ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+.json-editor-shell .jsoneditor-frame {
+  background: var(--bg-secondary) !important;
+}
+
+.json-editor-shell input {
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}

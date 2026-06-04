@@ -879,6 +879,7 @@ function handleJsonSearchInput() {
     jsonSearchResults = [];
     jsonSearchResultIndex = -1;
     renderDropdown(query, []);
+    showDropdown();
     updateSearchNavButtons();
     return;
   }

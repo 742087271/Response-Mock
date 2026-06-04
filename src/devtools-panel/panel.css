@@ -5,6 +5,7 @@
   --bg-secondary: #252526;
   --bg-tertiary: #2d2d2d;
   --bg-hover: #323232;
+  --bg-input: #2a2d2e;
   --border: #3c3c3c;
   --border-light: #454545;
   --text-primary: #cccccc;
@@ -905,13 +906,137 @@ body {
   min-height: 200px;
 }
 
-/* ==================== Animations ==================== */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* ==================== Vanilla JSONEditor Dark Theme Override ==================== */
+.json-editor-shell,
+.json-editor-shell * {
+  box-sizing: border-box;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Editor container background */
+.json-editor-shell {
+  background: var(--bg-secondary) !important;
+}
+
+/* Base text & selection */
+.json-editor-shell .jsoneditor,
+.json-editor-shell .jsoneditor-grip {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Tree nodes */
+.json-editor-shell .jsoneditor td {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-value {
+  color: var(--text-primary) !important;
+}
+
+.json-editor-shell .jsoneditor-key {
+  color: var(--accent-green) !important;
+}
+
+.json-editor-shell .jsoneditor-string {
+  color: #ce9178 !important;
+}
+
+.json-editor-shell .jsoneditor-number {
+  color: #b5cea8 !important;
+}
+
+.json-editor-shell .jsoneditor-boolean {
+  color: #569cd6 !important;
+}
+
+.json-editor-shell .jsoneditor-const {
+  color: #569cd6 !important;
+}
+
+.json-editor-shell .jsoneditor-null {
+  color: var(--text-muted) !important;
+}
+
+/* Connector lines */
+.json-editor-shell .jsoneditor td:first-child {
+  border-left-color: var(--border) !important;
+}
+
+/* Tree expand/collapse buttons */
+.json-editor-shell .jsoneditor-btn {
+  color: var(--text-secondary) !important;
+}
+
+.json-editor-shell .jsoneditor-btn:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Separator between key and value */
+.json-editor-shell .jsoneditor td.jsoneditor-tree {
+  border-color: var(--border) !important;
+}
+
+/* Context menu */
+.json-editor-shell .jsoneditor-contextmenu {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu {
+  background: var(--bg-secondary) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu button {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu button:hover {
+  background: var(--bg-hover) !important;
+}
+
+.json-editor-shell .jsoneditor-contextmenu .jsoneditor-menu button.jsoneditor-selected {
+  background: var(--accent) !important;
+}
+
+/* Menu bar (when enabled) */
+.json-editor-shell .jsoneditor-menu {
+  background: var(--bg-tertiary) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.json-editor-shell .jsoneditor-menu button {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
+.json-editor-shell .jsoneditor-menu button:hover {
+  color: var(--text-primary) !important;
+  background: var(--bg-hover) !important;
+}
+
+/* Navigation bar */
+.json-editor-shell .jsoneditor-navigation-bar {
+  background: var(--bg-tertiary) !important;
+  border-top: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Scrollbars inside editor */
+.json-editor-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
+.json-editor-shell ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+.json-editor-shell ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+/* Inner frame */
+.json-editor-shell .jsoneditor-frame {
+  background: var(--bg-secondary) !important;
+}
+
+/* Search/filter input inside editor */
+.json-editor-shell input {
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
 }
