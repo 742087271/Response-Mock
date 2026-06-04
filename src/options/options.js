@@ -702,12 +702,24 @@ function initJsonEditor(initialJson = {}) {
       props: {
         content: { json: initialJson },
         mode: 'tree',
-        mainMenuBar: false,
-        navigationBar: false,
+        mainMenuBar: true,
+        navigationBar: true,
         statusBar: false,
         indentation: 2,
         tabSize: 2,
         askToFormat: false,
+        onRenderMenu: (renderMenuProps, defaultMenuItems) => {
+          try {
+            return defaultMenuItems.filter(item =>
+              item.title === 'Search' ||
+              item.title === 'Format' ||
+              item.title === 'Sort' ||
+              item.title === 'Transform'
+            );
+          } catch {
+            return defaultMenuItems;
+          }
+        },
       },
     });
   } catch (e) {
@@ -877,6 +889,7 @@ function handleJsonSearchInput() {
   jsonSearchDropdownActiveIndex = -1;
 
   renderDropdown(query, results);
+  showDropdown();
   updateSearchNavButtons();
 
   if (results.length > 0) {

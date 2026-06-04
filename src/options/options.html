@@ -400,34 +400,36 @@
         <div class="form-group">
           <label>响应体 (JSON) <span class="required">*</span></label>
           <!-- Search bar — pins below modal-header when scrolled out of view -->
-          <div class="json-search-wrap" id="jsonSearchWrap">
-            <div class="json-search-bar">
-              <div class="json-search-input-wrap">
-                <svg class="json-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                </svg>
-                <input type="text" id="jsonFieldSearch" placeholder="搜索字段名或值..." autocomplete="off" spellcheck="false">
-                <button class="json-search-clear" id="jsonSearchClear" style="display:none;" title="清除">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          <div class="json-editor-container">
+            <div class="json-search-wrap" id="jsonSearchWrap">
+              <div class="json-search-bar">
+                <div class="json-search-input-wrap">
+                  <svg class="json-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                  </svg>
+                  <input type="text" id="jsonFieldSearch" placeholder="搜索字段名或值..." autocomplete="off" spellcheck="false">
+                  <button class="json-search-clear" id="jsonSearchClear" style="display:none;" title="清除">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+                <span class="json-search-count" id="jsonSearchCount"></span>
+                <button class="json-search-nav" id="jsonSearchPrev" title="上一个 (Shift+Enter)" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="18 15 12 9 6 15"/>
+                  </svg>
+                </button>
+                <button class="json-search-nav" id="jsonSearchNext" title="下一个 (Enter)" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
                   </svg>
                 </button>
               </div>
-              <span class="json-search-count" id="jsonSearchCount"></span>
-              <button class="json-search-nav" id="jsonSearchPrev" title="上一个 (Shift+Enter)" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="18 15 12 9 6 15"/>
-                </svg>
-              </button>
-              <button class="json-search-nav" id="jsonSearchNext" title="下一个 (Enter)" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
+              <div class="json-search-dropdown" id="jsonSearchDropdown"></div>
             </div>
-            <div class="json-search-dropdown" id="jsonSearchDropdown"></div>
+            <div class="json-editor-shell" id="jsonEditorPanel"></div>
           </div>
-          <div class="json-editor-shell" id="jsonEditorPanel"></div>
         </div>
         <div class="form-group">
           <label>备注</label>

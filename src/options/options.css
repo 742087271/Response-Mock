@@ -907,13 +907,22 @@ body {
 /* ==================== JSON Search Wrap ==================== */
 .json-search-wrap {
   position: relative;
+  z-index: 10;
   margin-bottom: 10px;
+}
+
+.json-editor-container {
+  position: relative;
 }
 
 .json-search-bar {
   display: flex;
   align-items: center;
   gap: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
 }
 
 .json-search-panel { display: none; }
@@ -952,19 +961,16 @@ body {
 
 .json-search-input-wrap input {
   width: 100%;
-  padding: 6px 28px 6px 28px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-input);
+  padding: 5px 28px 5px 28px;
+  background: transparent;
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.15s;
   box-sizing: border-box;
 }
 
 .json-search-input-wrap input:focus {
-  border-color: var(--accent);
+  background: transparent;
 }
 
 .json-search-clear {
