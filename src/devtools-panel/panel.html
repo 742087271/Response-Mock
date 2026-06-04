@@ -2,32 +2,31 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=400">
   <title>Response Mock</title>
-  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <div class="popup-root">
+  <div class="panel-root">
 
     <!-- Header -->
-    <header class="popup-header">
+    <header class="panel-header">
       <div class="header-left">
         <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
           <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
           <path d="M2 17l10 5 10-5" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
           <path d="M2 12l10 5 10-5" stroke="#4ec9b0" stroke-width="2" stroke-linejoin="round"/>
         </svg>
-        <h1 class="popup-title">Response Mock</h1>
+        <h1 class="panel-title">Response Mock</h1>
       </div>
       <div class="header-right">
         <label class="toggle-switch" title="总开关">
           <input type="checkbox" id="globalToggle" checked>
           <span class="toggle-slider"></span>
         </label>
-        <button class="btn-icon" id="btnSettings" title="设置">
+        <button class="btn-icon" id="btnSettings" title="打开设置页面">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </button>
       </div>
@@ -39,7 +38,7 @@
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
         </svg>
-        <input type="text" id="searchInput" placeholder="搜索规则名称或 URL...">
+        <input type="text" id="searchInput" placeholder="搜索规则名称、URL 或备注...">
       </div>
       <button class="btn btn-primary" id="btnAddRule">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -62,7 +61,7 @@
         <path d="M9 12h6M9 16h4"/>
       </svg>
       <p>暂无规则</p>
-      <span>点击上方「添加规则」开始配置</span>
+      <span>点击「添加规则」开始配置</span>
     </div>
 
     <!-- Status Bar -->
@@ -100,6 +99,7 @@
               <option value="DELETE">DELETE</option>
               <option value="PATCH">PATCH</option>
               <option value="OPTIONS">OPTIONS</option>
+              <option value="HEAD">HEAD</option>
             </select>
           </div>
           <div class="form-group">
@@ -109,23 +109,37 @@
         </div>
         <div class="form-group">
           <label>URL 匹配规则 <span class="required">*</span></label>
-          <input type="text" id="ruleUrl" placeholder="例如：https://api.example.com/users/* 或 */api/user*">
+          <input type="text" id="ruleUrl" placeholder="https://api.example.com/users/* 或 */api/user*">
           <small class="hint">支持 * 作为通配符匹配任意字符</small>
         </div>
         <div class="form-group">
           <label>响应延迟 (ms)</label>
-          <input type="number" id="ruleDelay" value="0" min="0" max="10000" step="100">
-          <small class="hint">设置响应延迟时间，用于测试加载状态</small>
+          <input type="number" id="ruleDelay" value="0" min="0" max="30000" step="100">
+          <small class="hint">设置响应延迟，用于模拟慢速网络或测试加载状态</small>
+        </div>
+        <div class="form-group">
+          <label>响应头</label>
+          <div class="headers-editor" id="headersEditor">
+            <div class="header-row" data-index="0">
+              <input type="text" class="header-key" placeholder="Header Name" value="Content-Type">
+              <input type="text" class="header-val" placeholder="Header Value" value="application/json">
+              <button class="btn-icon btn-remove-header" title="删除">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnAddHeader">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            添加响应头
+          </button>
         </div>
         <div class="form-group">
           <label>响应体 (JSON) <span class="required">*</span></label>
-          <textarea id="ruleBody" rows="8" placeholder='{"code": 0, "data": {"name": "Mock User"}}'></textarea>
-          <div class="json-actions">
-            <button class="btn-link" id="btnPasteResponse" title="从剪贴板粘贴响应体（先在 DevTools Network 复制）">📋 粘贴响应</button>
-            <button class="btn-link" id="btnFormatJson">格式化</button>
-            <button class="btn-link" id="btnMinifyJson">压缩</button>
-          </div>
-          <div class="json-error" id="jsonError" style="display:none;"></div>
+          <div class="json-editor-shell" id="jsonEditorPanel"></div>
         </div>
         <div class="form-group">
           <label>备注</label>
@@ -160,6 +174,6 @@
   <!-- Hidden File Input for Import -->
   <input type="file" id="importFileInput" accept=".json" style="display:none;">
 
-  <script src="popup.js" type="module"></script>
+  <script src="panel.js" type="module"></script>
 </body>
 </html>

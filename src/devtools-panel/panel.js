@@ -1,5 +1,6 @@
-// ============ Popup 主脚本 ============
+// ============ DevTools Panel 主脚本 ============
 import { HTTP_STATUS_CODES } from '../shared/constants.js';
+import { createJSONEditor } from '../options/vendor/vanilla-jsoneditor/standalone.js';
 
 // ---- State ----
 let allRules = [];
@@ -9,18 +10,12 @@ let currentDeleteId = null;
 let searchQuery = '';
 let globalEnabled = true;
 
+// ---- JSON Editor State ----
+let jsonEditorInstance = null;
+
 // ---- DOM Elements ----
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
-
-const globalToggle = $('#globalToggle');
-const searchInput = $('#searchInput');
-const ruleList = $('#ruleList');
-const emptyState = $('#emptyState');
-const statusText = $('#statusText');
-const ruleModal = $('#ruleModal');
-const deleteModal = $('#deleteModal');
-const importFileInput = $('#importFileInput');
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', init);
@@ -39,72 +34,55 @@ async function loadData() {
     ]);
     allRules = rulesRes.rules || [];
     globalEnabled = configRes.config?.enabled !== false;
-    globalToggle.checked = globalEnabled;
+    $('#globalToggle').checked = globalEnabled;
     applySearch();
     render();
   } catch (err) {
     console.error('loadData error:', err);
-    statusText.textContent = '加载失败，请检查扩展服务是否正常';
+    $('#statusText').textContent = '加载失败，请检查扩展服务是否正常';
   }
 }
 
 // ---- Event Binding ----
 function bindEvents() {
-  // 全局开关
-  globalToggle.addEventListener('change', async () => {
-    globalEnabled = globalToggle.checked;
+  $('#globalToggle').addEventListener('change', async () => {
+    globalEnabled = $('#globalToggle').checked;
     await sendMessage({ type: 'TOGGLE_GLOBAL_ENABLED', enabled: globalEnabled });
-    // 通知内容脚本
     notifyAllTabs({ type: 'TOGGLE_ENABLED', enabled: globalEnabled });
   });
 
-  // 搜索
-  searchInput.addEventListener('input', debounce(() => {
-    searchQuery = searchInput.value.trim().toLowerCase();
+  $('#searchInput').addEventListener('input', debounce(() => {
+    searchQuery = $('#searchInput').value.trim().toLowerCase();
     applySearch();
     render();
   }, 200));
 
-  // 添加规则
   $('#btnAddRule').addEventListener('click', openAddModal);
-
-  // 设置按钮 → 打开选项页
-  $('#btnSettings').addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
-  });
-
-  // 导出
   $('#btnExport').addEventListener('click', exportData);
+  $('#btnImport').addEventListener('click', () => $('#importFileInput').click());
+  $('#importFileInput').addEventListener('change', handleImport);
 
-  // 导入
-  $('#btnImport').addEventListener('click', () => importFileInput.click());
-  importFileInput.addEventListener('change', handleImport);
-
-  // Modal 事件
   $('#btnModalClose').addEventListener('click', closeModal);
   $('#btnCancelRule').addEventListener('click', closeModal);
-  ruleModal.addEventListener('click', (e) => {
-    if (e.target === ruleModal) closeModal();
-  });
+  $('#ruleModal').addEventListener('click', (e) => { if (e.target === $('#ruleModal')) closeModal(); });
 
-  // 删除确认 Modal
   $('#btnDeleteModalClose').addEventListener('click', closeDeleteModal);
   $('#btnCancelDelete').addEventListener('click', closeDeleteModal);
   $('#btnConfirmDelete').addEventListener('click', confirmDelete);
-  deleteModal.addEventListener('click', (e) => {
-    if (e.target === deleteModal) closeDeleteModal();
+  $('#deleteModal').addEventListener('click', (e) => { if (e.target === $('#deleteModal')) closeDeleteModal(); });
+
+  $('#btnAddHeader')?.addEventListener('click', addHeaderRow);
+  $('#headersEditor')?.querySelectorAll('.btn-remove-header').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.closest('#headersEditor')?.children.length > 1) btn.closest('.header-row')?.remove();
+    });
   });
 
-  // JSON 操作
-  $('#btnFormatJson').addEventListener('click', () => formatJson('format'));
-  $('#btnMinifyJson').addEventListener('click', () => formatJson('minify'));
-  $('#btnPasteResponse').addEventListener('click', pasteResponse);
+  $('#btnSaveRule')?.addEventListener('click', saveRule);
 
-  // 保存规则
-  $('#btnSaveRule').addEventListener('click', saveRule);
-
-  // 实时 JSON 校验
-  $('#ruleBody').addEventListener('input', validateJson);
+  $('#btnSettings')?.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+  });
 }
 
 // ---- Filtering ----
@@ -124,40 +102,25 @@ function applySearch() {
 function render() {
   const count = filteredRules.length;
   const total = allRules.length;
-  statusText.textContent = globalEnabled
+  $('#statusText').textContent = globalEnabled
     ? `${count} 条规则${searchQuery ? `（共 ${total}）` : ''}`
     : `已停用 · ${count} 条规则`;
 
   if (filteredRules.length === 0) {
-    ruleList.innerHTML = '';
-    emptyState.style.display = 'flex';
+    $('#ruleList').innerHTML = '';
+    $('#emptyState').style.display = 'flex';
     return;
   }
 
-  emptyState.style.display = 'none';
-  ruleList.innerHTML = filteredRules.map(rule => renderRuleCard(rule)).join('');
+  $('#emptyState').style.display = 'none';
+  $('#ruleList').innerHTML = filteredRules.map(rule => renderRuleCard(rule)).join('');
 
-  // 绑定卡片事件
-  ruleList.querySelectorAll('.rule-card').forEach(card => {
+  $('#ruleList').querySelectorAll('.rule-card').forEach(card => {
     const id = card.dataset.id;
-
-    // 启用/禁用 toggle
-    const toggle = card.querySelector('.rule-toggle input');
-    if (toggle) {
-      toggle.addEventListener('change', () => toggleRule(id));
-    }
-
-    // 编辑
-    const editBtn = card.querySelector('.btn-edit');
-    if (editBtn) editBtn.addEventListener('click', () => openEditModal(id));
-
-    // 删除
-    const deleteBtn = card.querySelector('.btn-delete');
-    if (deleteBtn) deleteBtn.addEventListener('click', () => openDeleteModal(id));
-
-    // 复制 URL
-    const copyBtn = card.querySelector('.btn-copy');
-    if (copyBtn) copyBtn.addEventListener('click', () => copyUrl(id));
+    card.querySelector('.rule-toggle input')?.addEventListener('change', () => toggleRule(id));
+    card.querySelector('.btn-edit')?.addEventListener('click', () => openEditModal(id));
+    card.querySelector('.btn-delete')?.addEventListener('click', () => openDeleteModal(id));
+    card.querySelector('.btn-copy')?.addEventListener('click', () => copyUrl(id));
   });
 }
 
@@ -217,8 +180,10 @@ function openAddModal() {
   currentEditId = null;
   $('#modalTitle').textContent = '添加规则';
   resetForm();
-  ruleModal.style.display = 'flex';
-  $('#ruleName').focus();
+  renderHeaders({ 'Content-Type': 'application/json' });
+  initJsonEditor({});
+  $('#ruleModal').style.display = 'flex';
+  $('#ruleName')?.focus();
 }
 
 function openEditModal(id) {
@@ -227,58 +192,126 @@ function openEditModal(id) {
   currentEditId = id;
   $('#modalTitle').textContent = '编辑规则';
 
+  let bodyJson = {};
+  if (rule.responseBody) {
+    if (typeof rule.responseBody === 'string') {
+      try { bodyJson = JSON.parse(rule.responseBody); } catch {}
+    } else {
+      bodyJson = rule.responseBody;
+    }
+  }
+
+  $$('#ruleModal input:not([type="checkbox"])').forEach(el => el.value = '');
   $('#ruleName').value = rule.name || '';
   $('#ruleMethod').value = rule.method || '*';
   $('#ruleStatus').value = rule.responseStatus || 200;
   $('#ruleUrl').value = rule.urlPattern || rule.url || '';
   $('#ruleDelay').value = rule.delay || 0;
-  $('#ruleBody').value = typeof rule.responseBody === 'string'
-    ? tryPrettyJson(rule.responseBody)
-    : JSON.stringify(rule.responseBody, null, 2);
   $('#ruleDescription').value = rule.description || '';
 
-  validateJson();
-  ruleModal.style.display = 'flex';
+  renderHeaders(rule.responseHeaders || { 'Content-Type': 'application/json' });
+  initJsonEditor(bodyJson);
+  $('#ruleModal').style.display = 'flex';
 }
 
 function closeModal() {
-  ruleModal.style.display = 'none';
+  destroyJsonEditor();
+  $('#ruleModal').style.display = 'none';
   currentEditId = null;
-  resetForm();
 }
 
 function resetForm() {
-  $$('#ruleModal input, #ruleModal textarea').forEach(el => {
-    if (el.type === 'checkbox') return;
-    el.value = '';
-  });
-  $('#ruleStatus').value = 200;
-  $('#ruleDelay').value = 0;
-  $('#ruleMethod').value = 'GET';
-  $('#jsonError').style.display = 'none';
+  $$('#ruleModal input:not([type="checkbox"])').forEach(el => el.value = '');
+  if ($('#ruleStatus')) $('#ruleStatus').value = 200;
+  if ($('#ruleDelay')) $('#ruleDelay').value = 0;
+  if ($('#ruleMethod')) $('#ruleMethod').value = '*';
 }
 
+// ---- Headers Editor ----
+function renderHeaders(headers = {}) {
+  const editor = $('#headersEditor');
+  if (!editor) return;
+  editor.innerHTML = '';
+  const entries = Object.entries(headers);
+  if (entries.length === 0) entries.push(['Content-Type', 'application/json']);
+  entries.forEach(([key, val]) => {
+    const row = document.createElement('div');
+    row.className = 'header-row';
+    row.innerHTML = `
+      <input type="text" class="header-key" placeholder="Header Name" value="${escapeHtml(key)}">
+      <input type="text" class="header-val" placeholder="Header Value" value="${escapeHtml(val)}">
+      <button class="btn-icon btn-remove-header" title="删除">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    `;
+    row.querySelector('.btn-remove-header').addEventListener('click', () => {
+      if (editor.children.length > 1) row.remove();
+    });
+    editor.appendChild(row);
+  });
+}
+
+function addHeaderRow() {
+  const editor = $('#headersEditor');
+  if (!editor) return;
+  const row = document.createElement('div');
+  row.className = 'header-row';
+  row.innerHTML = `
+    <input type="text" class="header-key" placeholder="Header Name" value="">
+    <input type="text" class="header-val" placeholder="Header Value" value="">
+    <button class="btn-icon btn-remove-header" title="删除">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  `;
+  row.querySelector('.btn-remove-header').addEventListener('click', () => {
+    if (editor.children.length > 1) row.remove();
+  });
+  editor.appendChild(row);
+}
+
+function collectHeaders() {
+  const headers = {};
+  $$('.header-row').forEach(row => {
+    const key = row.querySelector('.header-key')?.value.trim();
+    const val = row.querySelector('.header-val')?.value.trim();
+    if (key) headers[key] = val;
+  });
+  return headers;
+}
+
+// ---- Save Rule ----
 async function saveRule() {
-  const name = $('#ruleName').value.trim();
-  const url = $('#ruleUrl').value.trim();
-  const body = $('#ruleBody').value;
+  const name = $('#ruleName')?.value.trim();
+  const url = $('#ruleUrl')?.value.trim();
 
   if (!name) { alert('请输入规则名称'); return; }
   if (!url) { alert('请输入 URL 匹配规则'); return; }
-  if (!isValidJson(body)) {
-    showJsonError('JSON 格式不正确，请检查');
-    return;
+
+  let responseBody = {};
+  if (jsonEditorInstance) {
+    try {
+      const content = jsonEditorInstance.get?.();
+      if (content?.json) responseBody = content.json;
+      else if (content?.text) {
+        try { responseBody = JSON.parse(content.text); }
+        catch { responseBody = {}; }
+      }
+    } catch {}
   }
 
   const ruleData = {
     name,
     urlPattern: url,
-    method: $('#ruleMethod').value,
-    responseStatus: parseInt($('#ruleStatus').value) || 200,
-    responseBody: tryMinifyJson(body),
-    responseHeaders: { 'Content-Type': 'application/json' },
-    delay: parseInt($('#ruleDelay').value) || 0,
-    description: $('#ruleDescription').value.trim(),
+    method: $('#ruleMethod')?.value || '*',
+    responseStatus: parseInt($('#ruleStatus')?.value) || 200,
+    responseBody,
+    responseHeaders: collectHeaders(),
+    delay: parseInt($('#ruleDelay')?.value) || 0,
+    description: $('#ruleDescription')?.value.trim() || '',
   };
 
   if (currentEditId) {
@@ -307,12 +340,12 @@ function openDeleteModal(id) {
   const rule = allRules.find(r => r.id === id);
   if (!rule) return;
   currentDeleteId = id;
-  $('#deleteRuleName').textContent = rule.name;
-  deleteModal.style.display = 'flex';
+  if ($('#deleteRuleName')) $('#deleteRuleName').textContent = rule.name;
+  $('#deleteModal').style.display = 'flex';
 }
 
 function closeDeleteModal() {
-  deleteModal.style.display = 'none';
+  $('#deleteModal').style.display = 'none';
   currentDeleteId = null;
 }
 
@@ -336,85 +369,42 @@ async function toggleRule(id) {
   notifyAllTabs({ type: 'REFRESH_RULES' });
 }
 
-// ---- JSON Utils ----
-function validateJson() {
-  const body = $('#ruleBody').value;
-  const errorEl = $('#jsonError');
-  if (!body.trim()) {
-    errorEl.style.display = 'none';
-    return true;
-  }
-  if (isValidJson(body)) {
-    errorEl.style.display = 'none';
-    return true;
-  }
-  showJsonError('JSON 格式不正确');
-  return false;
-}
+// ---- JSON Editor ----
+function initJsonEditor(initialJson = {}) {
+  const container = $('#jsonEditorPanel');
+  if (!container) return;
 
-function showJsonError(msg) {
-  const errorEl = $('#jsonError');
-  errorEl.textContent = msg;
-  errorEl.style.display = 'block';
-}
+  if (jsonEditorInstance) {
+    try { jsonEditorInstance.destroy?.(); } catch {}
+    jsonEditorInstance = null;
+  }
 
-function formatJsonBody() {
-  const textarea = $('#ruleBody');
   try {
-    textarea.value = JSON.stringify(JSON.parse(textarea.value), null, 2);
-    $('#jsonError').style.display = 'none';
-  } catch {
-    showJsonError('无法格式化：JSON 格式不正确');
-  }
-}
-
-function minifyJsonBody() {
-  const textarea = $('#ruleBody');
-  try {
-    textarea.value = JSON.stringify(JSON.parse(textarea.value));
-  } catch {
-    showJsonError('无法压缩：JSON 格式不正确');
-  }
-}
-
-function formatJson(action) {
-  if (action === 'format') formatJsonBody();
-  else minifyJsonBody();
-}
-
-function tryPrettyJson(str) {
-  try { return JSON.stringify(JSON.parse(str), null, 2); }
-  catch { return str; }
-}
-
-function tryMinifyJson(str) {
-  try { return JSON.stringify(JSON.parse(str)); }
-  catch { return str; }
-}
-
-function isValidJson(str) {
-  if (!str || !str.trim()) return true; // 空值允许
-  try { JSON.parse(str); return true; }
-  catch { return false; }
-}
-
-// ---- Paste Response from Clipboard ----
-async function pasteResponse() {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text) { alert('剪贴板为空'); return; }
-    // 尝试格式化 JSON
-    let formatted;
-    try {
-      formatted = JSON.stringify(JSON.parse(text), null, 2);
-    } catch {
-      formatted = text; // 不是 JSON，直接填入
-    }
-    $('#ruleBody').value = formatted;
-    validateJson();
+    jsonEditorInstance = createJSONEditor({
+      target: container,
+      props: {
+        content: { json: initialJson },
+        mode: 'tree',
+        mainMenuBar: false,
+        navigationBar: false,
+        statusBar: false,
+        indentation: 2,
+        tabSize: 2,
+        askToFormat: false,
+      },
+    });
   } catch (e) {
-    alert('粘贴失败，请检查浏览器权限设置');
+    console.warn('JSON editor init failed:', e);
   }
+}
+
+function destroyJsonEditor() {
+  if (jsonEditorInstance) {
+    try { jsonEditorInstance.destroy?.(); } catch {}
+    jsonEditorInstance = null;
+  }
+  const container = $('#jsonEditorPanel');
+  if (container) container.innerHTML = '';
 }
 
 // ---- Copy URL ----
@@ -437,7 +427,7 @@ async function exportData() {
 }
 
 async function handleImport() {
-  const file = importFileInput.files[0];
+  const file = $('#importFileInput').files[0];
   if (!file) return;
   try {
     const text = await file.text();
@@ -445,18 +435,16 @@ async function handleImport() {
     await sendMessage({ type: 'IMPORT_DATA', data });
     await loadData();
     notifyAllTabs({ type: 'REFRESH_RULES' });
-  } catch (e) {
+  } catch {
     alert('导入失败：文件格式错误');
   }
-  importFileInput.value = '';
+  $('#importFileInput').value = '';
 }
 
 // ---- Helpers ----
 function sendMessage(msg) {
   return new Promise(resolve => {
-    const timer = setTimeout(() => {
-      resolve({}); // 超时返回空对象
-    }, 5000);
+    const timer = setTimeout(() => resolve({}), 5000);
     chrome.runtime.sendMessage(msg, res => {
       clearTimeout(timer);
       resolve(res || {});

@@ -795,36 +795,7 @@ body {
 .modal-body::-webkit-scrollbar { width: 6px; }
 .modal-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* ==================== JSON Search Wrap ==================== */
-.json-search-wrap {
-  position: relative;
-  margin-bottom: 10px;
-}
-
-.json-search-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.json-search-panel { display: none; } /* unused */
-
-.json-search-wrap.is-pinned .json-search-bar {
-  position: fixed;
-  z-index: 100;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-}
-
-.json-search-placeholder {
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
+/* ==================== Form ==================== */
 .modal-footer {
   display: flex;
   align-items: center;
@@ -855,8 +826,7 @@ body {
 .form-group .required { color: var(--danger); }
 
 .form-group input,
-.form-group select,
-.form-group textarea {
+.form-group select {
   width: 100%;
   padding: 8px 11px;
   background: var(--bg-tertiary);
@@ -867,24 +837,15 @@ body {
   font-family: inherit;
   outline: none;
   transition: var(--transition);
-  resize: vertical;
 }
 
 .form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.form-group select:focus {
   border-color: var(--accent-green);
   background: var(--bg-primary);
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder { color: var(--text-muted); }
-
-.form-group textarea {
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 12px;
-  line-height: 1.65;
-}
+.form-group input::placeholder { color: var(--text-muted); }
 
 .form-group small.hint {
   display: block;
@@ -900,24 +861,13 @@ body {
 
 .form-row .form-group { flex: 1; }
 
-.json-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.json-error {
-  margin-top: 5px;
+.form-group small.hint {
+  display: block;
   font-size: 11px;
-  color: var(--danger);
-  background: rgba(244, 67, 54, 0.1);
-  border-radius: 4px;
-  padding: 5px 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
-.text-muted { color: var(--text-secondary); font-size: 12px; }
-
-/* ==================== Headers Editor ==================== */
 .headers-editor {
   display: flex;
   flex-direction: column;
@@ -954,219 +904,11 @@ body {
   background: rgba(244, 67, 54, 0.15) !important;
 }
 
-/* ==================== JSON Field Search ==================== */
-.json-search-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.json-search-input-wrap {
-  position: relative;
-  flex: 1;
-}
-
-.json-search-icon {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 13px;
-  height: 13px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.json-search-input-wrap input {
-  width: 100%;
-  padding: 6px 28px 6px 28px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-  outline: none;
-  transition: var(--transition);
-}
-
-.json-search-input-wrap input:focus {
-  border-color: var(--accent-green);
-  background: var(--bg-tertiary);
-}
-
-.json-search-input-wrap input::placeholder {
-  color: var(--text-muted);
-}
-
-.json-search-clear {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-}
-
-.json-search-clear:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.json-search-clear svg {
-  width: 12px;
-  height: 12px;
-}
-
-.json-search-count {
-  font-size: 11px;
-  color: var(--accent-green);
-  white-space: nowrap;
-  min-width: 48px;
-  text-align: center;
-}
-
-.json-search-nav {
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--border);
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  transition: var(--transition);
-  flex-shrink: 0;
-}
-
-.json-search-nav:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.json-search-nav:not(:disabled):hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-light);
-}
-
-.json-search-nav svg {
-  width: 14px;
-  height: 14px;
-}
-
-.json-search-dropdown {
-  display: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  max-height: 220px;
-  overflow-y: auto;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius);
-  margin-top: 4px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-  z-index: 201;
-}
-
-.json-search-dropdown.visible {
-  display: block;
-}
-
-.json-search-dropdown::-webkit-scrollbar {
-  width: 5px;
-}
-
-.json-search-dropdown::-webkit-scrollbar-thumb {
-  background: var(--border-light);
-  border-radius: 3px;
-}
-
-.json-search-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: var(--transition);
-  border-bottom: 1px solid var(--border);
-  gap: 10px;
-}
-
-.json-search-item:last-child {
-  border-bottom: none;
-}
-
-.json-search-item:hover,
-.json-search-item.active {
-  background: var(--bg-hover);
-}
-
-.json-search-item.active {
-  background: var(--accent-green-dim);
-}
-
-.json-search-item-path {
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 11px;
-  color: var(--accent-green);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-
-.json-search-item-value {
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 10px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 120px;
-  text-align: right;
-}
-
-.json-search-item-type {
-  font-size: 10px;
-  color: var(--text-muted);
-  padding: 1px 5px;
-  background: var(--bg-primary);
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.json-search-empty {
-  padding: 12px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
 .json-editor-shell {
   margin-bottom: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  min-height: 200px;
-}
-
-.json-editor-shell-inner {
   min-height: 200px;
 }
 

@@ -15,13 +15,6 @@ let globalEnabled = true;
 const PAGE_SIZE = 20;
 let currentPage = 1;
 
-// ---- JSON Editor & Search State ----
-let jsonEditor = null;
-let jsonEditorContent = { json: {} };
-let jsonSearchResults = [];
-let jsonSearchResultIndex = -1;
-let jsonSearchDropdownActiveIndex = -1;
-
 // ---- Storage Keys ----
 const STORAGE_KEYS = {
   RULES: 'mock_rules',
@@ -132,24 +125,7 @@ function bindEvents() {
   $('#btnCancelRule').addEventListener('click', closeModal);
   $('#ruleModal').addEventListener('click', e => { if (e.target === $('#ruleModal')) closeModal(); });
   $('#btnSaveRule').addEventListener('click', saveRule);
-  $('#btnFormatJson').addEventListener('click', () => formatJsonAction('format'));
-  $('#btnMinifyJson').addEventListener('click', () => formatJsonAction('minify'));
-  $('#btnValidateJson').addEventListener('click', () => {
-    const valid = validateJson();
-    if (valid) alert('JSON 格式正确');
-  });
-  $('#btnPasteResponse').addEventListener('click', pasteResponseOptions);
-  $('#ruleBody').addEventListener('input', validateJson);
   $('#btnAddHeader').addEventListener('click', addHeaderRow);
-
-  // JSON Field Search
-  $('#jsonFieldSearch').addEventListener('input', debounce(handleJsonSearchInput, 150));
-  $('#jsonFieldSearch').addEventListener('keydown', handleJsonSearchKeydown);
-  $('#jsonFieldSearch').addEventListener('focus', handleJsonSearchFocus);
-  $('#jsonFieldSearch').addEventListener('blur', handleJsonSearchBlur);
-  $('#jsonSearchClear').addEventListener('click', clearJsonSearch);
-  $('#jsonSearchPrev').addEventListener('click', () => navigateJsonSearch(-1));
-  $('#jsonSearchNext').addEventListener('click', () => navigateJsonSearch(1));
 
   // Delete Modal
   $('#btnDeleteModalClose').addEventListener('click', () => $('#deleteModal').style.display = 'none');
@@ -331,71 +307,51 @@ function openAddModal() {
   $('#modalTitle').textContent = '添加规则';
   resetForm();
   ruleModalSetup();
-  openJsonEditor();
-  clearJsonSearch();
-  _searchPinned    = false;
-  _scrollThreshold = null;
+  initJsonEditor({});
   $('#ruleModal').style.display = 'flex';
-  setupSearchScroll();
 }
 
 function openEditModal(id) {
   const rule = allRules.find(r => r.id === id);
   if (!rule) return;
-  const bodyValue = tryPrettyJson(
-    typeof rule.responseBody === 'string' ? rule.responseBody : JSON.stringify(rule.responseBody || {})
-  );
+
+  let bodyJson = {};
+  if (rule.responseBody) {
+    if (typeof rule.responseBody === 'string') {
+      try { bodyJson = JSON.parse(rule.responseBody); } catch {}
+    } else {
+      bodyJson = rule.responseBody;
+    }
+  }
 
   currentEditId = id;
   $('#modalTitle').textContent = '编辑规则';
 
+  $$('#ruleModal input:not([type=checkbox])').forEach(el => el.value = '');
   $('#ruleName').value = rule.name || '';
   $('#ruleMethod').value = rule.method || '*';
   $('#ruleStatus').value = rule.responseStatus || 200;
   $('#ruleUrl').value = rule.urlPattern || rule.url || '';
   $('#ruleDelay').value = rule.delay || 0;
-  $('#ruleBody').value = bodyValue;
   $('#ruleDescription').value = rule.description || '';
 
   renderHeaders(rule.responseHeaders || { 'Content-Type': 'application/json' });
-  openJsonEditor();
-  clearJsonSearch();
-  validateJson();
-  _searchPinned    = false;
-  _scrollThreshold = null;
+  initJsonEditor(bodyJson);
   $('#ruleModal').style.display = 'flex';
-  setupSearchScroll();
 }
 
 function closeModal() {
-  _searchPinned    = false;
-  _scrollThreshold = null;
-  const wrap = $('#jsonSearchWrap');
-  if (wrap) {
-    const bar = wrap.querySelector('.json-search-bar');
-    if (bar) { bar.style.position = ''; bar.style.top = ''; bar.style.left = ''; bar.style.width = ''; }
-    wrap.classList.remove('is-pinned');
-    const ph = wrap.querySelector('.json-search-placeholder');
-    if (ph) ph.remove();
-  }
-  const modalBody = $('#ruleModal')?.querySelector('.modal-body');
-  if (modalBody && _searchScrollHandler) {
-    modalBody.removeEventListener('scroll', _searchScrollHandler);
-    _searchScrollHandler = null;
-  }
   $('#ruleModal').style.display = 'none';
   currentEditId = null;
   destroyJsonEditor();
 }
 
 function resetForm() {
-  $$('#ruleModal input:not([type=checkbox]), #ruleModal textarea').forEach(el => el.value = '');
+  $$('#ruleModal input:not([type=checkbox])').forEach(el => el.value = '');
   $('#ruleMethod').value = '*';
   $('#ruleStatus').value = 200;
   $('#ruleDelay').value = 0;
   renderHeaders({ 'Content-Type': 'application/json' });
-  $('#jsonError').style.display = 'none';
-  if ($('#ruleBody')) $('#ruleBody').value = '{}';
 }
 
 // ---- Headers Editor ----
@@ -459,23 +415,29 @@ function collectHeaders() {
 async function saveRule() {
   const name = $('#ruleName').value.trim();
   const url = $('#ruleUrl').value.trim();
-  const body = $('#ruleBody').value;
 
   if (!name) { alert('请输入规则名称'); return; }
   if (!url) { alert('请输入 URL 匹配规则'); return; }
-  if (!isValidJson(body)) {
-    showJsonError('JSON 格式不正确');
-    return;
+
+  let responseBody = {};
+  if (jsonEditorInstance) {
+    try {
+      const content = jsonEditorInstance.get?.();
+      if (content?.json) responseBody = content.json;
+      else if (content?.text) {
+        try { responseBody = JSON.parse(content.text); }
+        catch { responseBody = {}; }
+      }
+    } catch {}
   }
 
-  const headers = collectHeaders();
   const ruleData = {
     name,
     urlPattern: url,
     method: $('#ruleMethod').value,
     responseStatus: parseInt($('#ruleStatus').value) || 200,
-    responseBody: tryMinifyJson(body),
-    responseHeaders: headers,
+    responseBody,
+    responseHeaders: collectHeaders(),
     delay: parseInt($('#ruleDelay').value) || 0,
     description: $('#ruleDescription').value.trim(),
   };
@@ -681,27 +643,16 @@ async function handleImport() {
   $('#importFileSettings').value = '';
 }
 
-// ============ JSON Editor & Search ============
+// ============ JSON Editor ============
 
 let jsonEditorInstance = null;
-let currentJsonContent = { json: {} };
 
-function openJsonEditor() {
+function initJsonEditor(initialJson = {}) {
   const container = $('#jsonEditorPanel');
-  const textarea = $('#ruleBody');
-  if (!container || !textarea) return;
-
-  const text = textarea.value.trim() || '{}';
-  try {
-    currentJsonContent = { json: JSON.parse(text) };
-  } catch {
-    currentJsonContent = { text: text };
-  }
+  if (!container) return;
 
   if (jsonEditorInstance) {
-    try {
-      jsonEditorInstance.destroy?.();
-    } catch {}
+    try { jsonEditorInstance.destroy?.(); } catch {}
     jsonEditorInstance = null;
   }
 
@@ -709,7 +660,7 @@ function openJsonEditor() {
     jsonEditorInstance = createJSONEditor({
       target: container,
       props: {
-        content: currentJsonContent,
+        content: { json: initialJson },
         mode: 'tree',
         mainMenuBar: false,
         navigationBar: false,
@@ -717,509 +668,28 @@ function openJsonEditor() {
         indentation: 2,
         tabSize: 2,
         askToFormat: false,
-        onChange: (updatedContent) => {
-          currentJsonContent = updatedContent;
-          if (updatedContent?.text !== undefined) {
-            textarea.value = updatedContent.text;
-          } else if (updatedContent?.json !== undefined) {
-            textarea.value = JSON.stringify(updatedContent.json, null, 2);
-          }
-          validateJson();
-        },
       },
     });
   } catch (e) {
-    console.warn('JSON editor init failed, falling back to textarea:', e);
-  }
-
-  container.style.display = 'block';
-  textarea.style.display = 'none';
-  container.classList.add('json-editor-shell-inner');
-}
-
-function syncJsonEditorFromTextarea() {
-  const textarea = $('#ruleBody');
-  if (!textarea) return;
-  const text = textarea.value.trim() || '{}';
-  try {
-    currentJsonContent = { json: JSON.parse(text) };
-  } catch {
-    currentJsonContent = { text: text };
-  }
-  if (jsonEditorInstance) {
-    try {
-      jsonEditorInstance.updateProps?.({ content: currentJsonContent });
-    } catch {}
+    console.warn('JSON editor init failed:', e);
   }
 }
 
 function destroyJsonEditor() {
   if (jsonEditorInstance) {
-    try {
-      jsonEditorInstance.destroy?.();
-    } catch {}
+    try { jsonEditorInstance.destroy?.(); } catch {}
     jsonEditorInstance = null;
   }
   const container = $('#jsonEditorPanel');
-  const textarea = $('#ruleBody');
-  if (container) {
-    container.style.display = 'none';
-    container.classList.remove('json-editor-shell-inner');
-  }
-  if (textarea) {
-    textarea.style.display = 'block';
-  }
-  clearJsonSearch();
+  if (container) container.innerHTML = '';
 }
 
-// ---- JSON Field Search (auto-pins below modal-header after scroll) ----
-let _searchPinned    = false;
-let _scrollThreshold = null;
-let _searchScrollHandler = null;
+// ============ JSON Editor ============
 
-function syncSearchPin() {
-  const wrap      = $('#jsonSearchWrap');
-  const bar       = wrap?.querySelector('.json-search-bar');
-  const modalBody = $('#ruleModal')?.querySelector('.modal-body');
-  const modal     = $('#ruleModal')?.querySelector('.modal');
-  if (!wrap || !bar || !modalBody || !modal) return;
-
-  const st = modalBody.scrollTop;
-
-  const headerH  = (modal.querySelector('.modal-header')?.offsetHeight ?? 0);
-  const stickY   = modal.getBoundingClientRect().top + headerH;
-  const wrapTop  = wrap.getBoundingClientRect().top;
-
-  if (!_searchPinned && st > 0 && wrapTop <= stickY) {
-    // Pin: record threshold, remember wrap height, fix bar position
-    _searchPinned    = true;
-    _scrollThreshold = st;
-
-    const bodyRect  = modalBody.getBoundingClientRect();
-
-    wrap.classList.add('is-pinned');
-    if (!wrap.querySelector('.json-search-placeholder')) {
-      const ph = document.createElement('div');
-      ph.className = 'json-search-placeholder';
-      wrap.insertBefore(ph, wrap.firstChild);
-    }
-    wrap.querySelector('.json-search-placeholder').style.height = wrap.offsetHeight + 'px';
-
-    bar.style.position = 'fixed';
-    bar.style.top      = stickY + 'px';
-    bar.style.left     = bodyRect.left + 'px';
-    bar.style.width    = bodyRect.width + 'px';
-
-  } else if (_searchPinned && st <= _scrollThreshold) {
-    // Unpin: restore bar, remove placeholder
-    _searchPinned    = false;
-    _scrollThreshold = null;
-    wrap.classList.remove('is-pinned');
-    bar.style.position = '';
-    bar.style.top      = '';
-    bar.style.left     = '';
-    bar.style.width    = '';
-    const ph = wrap.querySelector('.json-search-placeholder');
-    if (ph) ph.remove();
-  }
-}
-
-function setupSearchScroll() {
-  const modalBody = $('#ruleModal')?.querySelector('.modal-body');
-  if (!modalBody) return;
-  if (_searchScrollHandler) modalBody.removeEventListener('scroll', _searchScrollHandler);
-  _searchScrollHandler = () => syncSearchPin();
-  modalBody.addEventListener('scroll', _searchScrollHandler, { passive: true });
-}
-
-function handleJsonSearchInput() {
-  const query = ($('#jsonFieldSearch').value || '').trim();
-  const textarea = $('#ruleBody');
-  if (!textarea) return;
-
-  const dropdown = $('#jsonSearchDropdown');
-  const countEl = $('#jsonSearchCount');
-  const prevBtn = $('#jsonSearchPrev');
-  const nextBtn = $('#jsonSearchNext');
-  const clearBtn = $('#jsonSearchClear');
-
-  if (clearBtn) clearBtn.style.display = query ? 'flex' : 'none';
-
-  if (!query) {
-    jsonSearchResults = [];
-    jsonSearchResultIndex = -1;
-    hideDropdown();
-    updateSearchNavButtons();
-    return;
-  }
-
-  let json;
-  try {
-    json = JSON.parse(textarea.value || '{}');
-  } catch {
-    json = null;
-  }
-
-  if (!json) {
-    jsonSearchResults = [];
-    jsonSearchResultIndex = -1;
-    renderDropdown(query, []);
-    updateSearchNavButtons();
-    return;
-  }
-
-  const results = searchJsonFields(json, query);
-  jsonSearchResults = results;
-  jsonSearchResultIndex = results.length > 0 ? 0 : -1;
-  jsonSearchDropdownActiveIndex = -1;
-
-  renderDropdown(query, results);
-  updateSearchNavButtons();
-
-  if (results.length > 0) {
-    scrollToJsonPath(results[0].path);
-  }
-}
-
-function handleJsonSearchFocus() {
-  const query = ($('#jsonFieldSearch').value || '').trim();
-  if (query && jsonSearchResults.length > 0) {
-    showDropdown();
-  }
-}
-
-function handleJsonSearchBlur() {
-  setTimeout(() => hideDropdown(), 200);
-}
-
-function handleJsonSearchKeydown(event) {
-  const dropdown = $('#jsonSearchDropdown');
-  const isOpen = dropdown && dropdown.classList.contains('visible');
-
-  if (event.key === 'ArrowDown') {
-    event.preventDefault();
-    if (isOpen) {
-      jsonSearchDropdownActiveIndex = Math.min(jsonSearchDropdownActiveIndex + 1, jsonSearchResults.length - 1);
-      renderDropdownItems();
-      scrollDropdownToActive();
-    } else if (jsonSearchResults.length > 0) {
-      showDropdown();
-      jsonSearchDropdownActiveIndex = 0;
-      renderDropdownItems();
-    }
-    return;
-  }
-
-  if (event.key === 'ArrowUp') {
-    event.preventDefault();
-    if (isOpen) {
-      jsonSearchDropdownActiveIndex = Math.max(jsonSearchDropdownActiveIndex - 1, 0);
-      renderDropdownItems();
-      scrollDropdownToActive();
-    }
-    return;
-  }
-
-  if (event.key === 'Escape') {
-    hideDropdown();
-    $('#jsonFieldSearch')?.blur();
-    return;
-  }
-
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    if (isOpen && jsonSearchDropdownActiveIndex >= 0 && jsonSearchDropdownActiveIndex < jsonSearchResults.length) {
-      selectSearchResult(jsonSearchDropdownActiveIndex);
-    } else {
-      navigateJsonSearch(event.shiftKey ? -1 : 1);
-    }
-    return;
-  }
-}
-
-function navigateJsonSearch(direction) {
-  if (jsonSearchResults.length === 0) return;
-  jsonSearchResultIndex = (jsonSearchResultIndex + direction + jsonSearchResults.length) % jsonSearchResults.length;
-  const result = jsonSearchResults[jsonSearchResultIndex];
-  scrollToJsonPath(result.path);
-  updateSearchNavButtons();
-
-  const countEl = $('#jsonSearchCount');
-  if (countEl) {
-    countEl.textContent = `${jsonSearchResultIndex + 1}/${jsonSearchResults.length}`;
-  }
-}
-
-function selectSearchResult(index) {
-  if (index < 0 || index >= jsonSearchResults.length) return;
-  jsonSearchResultIndex = index;
-  const result = jsonSearchResults[index];
-  scrollToJsonPath(result.path);
-  hideDropdown();
-  updateSearchNavButtons();
-
-  const countEl = $('#jsonSearchCount');
-  if (countEl) {
-    countEl.textContent = `${jsonSearchResultIndex + 1}/${jsonSearchResults.length}`;
-  }
-}
-
-function clearJsonSearch() {
-  const input = $('#jsonFieldSearch');
-  if (input) input.value = '';
-  const countEl = $('#jsonSearchCount');
-  if (countEl) countEl.textContent = '';
-  const clearBtn = $('#jsonSearchClear');
-  if (clearBtn) clearBtn.style.display = 'none';
-  jsonSearchResults = [];
-  jsonSearchResultIndex = -1;
-  jsonSearchDropdownActiveIndex = -1;
-  hideDropdown();
-  updateSearchNavButtons();
-}
-
-function showDropdown() {
-  const dropdown = $('#jsonSearchDropdown');
-  if (dropdown) dropdown.classList.add('visible');
-}
-
-function hideDropdown() {
-  const dropdown = $('#jsonSearchDropdown');
-  if (dropdown) dropdown.classList.remove('visible');
-  jsonSearchDropdownActiveIndex = -1;
-}
-
-function renderDropdown(query, results) {
-  const dropdown = $('#jsonSearchDropdown');
-  if (!dropdown) return;
-
-  if (!query) {
-    dropdown.innerHTML = '';
-    dropdown.classList.remove('visible');
-    return;
-  }
-
-  if (results.length === 0) {
-    dropdown.innerHTML = `<div class="json-search-empty">无匹配字段</div>`;
-    dropdown.classList.add('visible');
-    return;
-  }
-
-  dropdown.innerHTML = results.slice(0, 50).map((r, i) => {
-    const pathStr = r.path.map((p, idx) => {
-      if (typeof p === 'number') return `[${p}]`;
-      if (idx === 0) return p;
-      return `.${p}`;
-    }).join('');
-
-    const valuePreview = formatValuePreview(r.value);
-    const typeTag = getValueTypeTag(r.value);
-
-    return `
-      <div class="json-search-item ${i === jsonSearchDropdownActiveIndex ? 'active' : ''}" data-index="${i}">
-        <span class="json-search-item-path">${escapeHtml(pathStr)}</span>
-        ${typeTag ? `<span class="json-search-item-type">${typeTag}</span>` : ''}
-        ${valuePreview ? `<span class="json-search-item-value">${escapeHtml(valuePreview)}</span>` : ''}
-      </div>
-    `;
-  }).join('');
-
-  dropdown.querySelectorAll('.json-search-item').forEach(item => {
-    item.addEventListener('mouseenter', () => {
-      jsonSearchDropdownActiveIndex = parseInt(item.dataset.index);
-      renderDropdownItems();
-    });
-    item.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      selectSearchResult(parseInt(item.dataset.index));
-    });
-  });
-
-  dropdown.classList.add('visible');
-}
-
-function renderDropdownItems() {
-  const dropdown = $('#jsonSearchDropdown');
-  if (!dropdown) return;
-  dropdown.querySelectorAll('.json-search-item').forEach((item, i) => {
-    item.classList.toggle('active', i === jsonSearchDropdownActiveIndex);
-  });
-}
-
-function scrollDropdownToActive() {
-  const dropdown = $('#jsonSearchDropdown');
-  if (!dropdown) return;
-  const active = dropdown.querySelector('.json-search-item.active');
-  if (active) {
-    active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-}
-
-function updateSearchNavButtons() {
-  const prevBtn = $('#jsonSearchPrev');
-  const nextBtn = $('#jsonSearchNext');
-  const hasResults = jsonSearchResults.length > 0;
-  if (prevBtn) prevBtn.disabled = !hasResults;
-  if (nextBtn) nextBtn.disabled = !hasResults;
-}
-
-function searchJsonFields(obj, query, path = []) {
-  const results = [];
-  const lowerQuery = query.toLowerCase();
-
-  if (Array.isArray(obj)) {
-    obj.forEach((item, index) => {
-      const itemPath = [...path, index];
-      const itemResults = searchJsonFields(item, query, itemPath);
-      results.push(...itemResults);
-    });
-  } else if (obj && typeof obj === 'object') {
-    for (const [key, value] of Object.entries(obj)) {
-      const keyPath = [...path, key];
-
-      if (key.toLowerCase().includes(lowerQuery)) {
-        results.push({
-          path: keyPath,
-          matchType: 'key',
-          key,
-          value,
-        });
-      }
-
-      const valueResults = searchJsonFields(value, query, keyPath);
-      results.push(...valueResults);
-    }
-  } else {
-    const strValue = String(obj);
-    if (strValue.toLowerCase().includes(lowerQuery)) {
-      results.push({
-        path,
-        matchType: 'value',
-        key: path[path.length - 1],
-        value: obj,
-      });
-    }
-  }
-
-  return results;
-}
-
-function scrollToJsonPath(path) {
-  if (!jsonEditorInstance) return;
-
-  try {
-    const parsedPath = path.map(p => typeof p === 'string' ? p : String(p));
-
-    if (jsonEditorInstance.expand) {
-      jsonEditorInstance.expand(parsedPath, () => true);
-    }
-
-    try {
-      jsonEditorInstance.select?.({ type: 'value', path: parsedPath });
-    } catch {}
-
-    try {
-      const el = jsonEditorInstance.findElement?.(parsedPath);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    } catch {}
-  } catch {}
-}
-
-function formatValuePreview(value) {
-  if (value === null) return 'null';
-  if (value === undefined) return '';
-  if (typeof value === 'boolean') return String(value);
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'string') {
-    if (value.length > 30) return `"${value.slice(0, 30)}…"`;
-    return `"${value}"`;
-  }
-  if (Array.isArray(value)) return `Array[${value.length}]`;
-  if (typeof value === 'object') return `Object{${Object.keys(value).length}}`;
-  return '';
-}
-
-function getValueTypeTag(value) {
-  if (value === null) return 'null';
-  if (typeof value === 'string') return 'string';
-  if (typeof value === 'number') return 'number';
-  if (typeof value === 'boolean') return 'boolean';
-  if (Array.isArray(value)) return 'array';
-  if (typeof value === 'object') return 'object';
-  return '';
-}
-
-// ---- JSON Utils ----
 function ruleModalSetup() {
   if ($('#headersEditor').children.length === 0) {
     renderHeaders({ 'Content-Type': 'application/json' });
   }
-}
-
-function validateJson() {
-  const body = $('#ruleBody').value;
-  const errorEl = $('#jsonError');
-  if (!body.trim()) { errorEl.style.display = 'none'; return true; }
-  if (isValidJson(body)) { errorEl.style.display = 'none'; return true; }
-  showJsonError('JSON 格式不正确');
-  return false;
-}
-
-function showJsonError(msg) {
-  const errorEl = $('#jsonError');
-  errorEl.textContent = msg;
-  errorEl.style.display = 'block';
-}
-
-async function pasteResponseOptions() {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text) { alert('剪贴板为空'); return; }
-    let formatted;
-    try {
-      formatted = JSON.stringify(JSON.parse(text), null, 2);
-    } catch {
-      formatted = text;
-    }
-    $('#ruleBody').value = formatted;
-    validateJson();
-    syncJsonEditorFromTextarea();
-  } catch (e) {
-    alert('粘贴失败，请检查浏览器权限设置');
-  }
-}
-
-function formatJsonAction(action) {
-  const textarea = $('#ruleBody');
-  try {
-    if (action === 'format') {
-      textarea.value = JSON.stringify(JSON.parse(textarea.value), null, 2);
-    } else {
-      textarea.value = JSON.stringify(JSON.parse(textarea.value));
-    }
-    $('#jsonError').style.display = 'none';
-    syncJsonEditorFromTextarea();
-  } catch {
-    showJsonError('无法操作：JSON 格式不正确');
-  }
-}
-
-function tryPrettyJson(str) {
-  try { return JSON.stringify(JSON.parse(str), null, 2); }
-  catch { return str; }
-}
-
-function tryMinifyJson(str) {
-  try { return JSON.stringify(JSON.parse(str)); }
-  catch { return str; }
-}
-
-function isValidJson(str) {
-  if (!str || !str.trim()) return true;
-  try { JSON.parse(str); return true; }
-  catch { return false; }
 }
 
 // ---- Helpers ----
