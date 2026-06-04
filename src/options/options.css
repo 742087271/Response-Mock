@@ -795,16 +795,10 @@ body {
 .modal-body::-webkit-scrollbar { width: 6px; }
 .modal-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
-/* ==================== JSON Search Wrap (sticky at top of modal-body) ==================== */
+/* ==================== JSON Search Wrap ==================== */
 .json-search-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--bg-secondary);
-  padding: 10px 0;
-  margin: 0 0 10px;
-  border-radius: var(--radius);
-  flex-shrink: 0;
+  position: relative;
+  margin-bottom: 10px;
 }
 
 .json-search-bar {
@@ -814,6 +808,22 @@ body {
 }
 
 .json-search-panel { display: none; } /* unused */
+
+.json-search-wrap.is-pinned .json-search-bar {
+  position: fixed;
+  z-index: 100;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+
+.json-search-placeholder {
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
 
 .modal-footer {
   display: flex;

@@ -333,7 +333,10 @@ function openAddModal() {
   ruleModalSetup();
   openJsonEditor();
   clearJsonSearch();
+  _searchPinned    = false;
+  _scrollThreshold = null;
   $('#ruleModal').style.display = 'flex';
+  setupSearchScroll();
 }
 
 function openEditModal(id) {
@@ -358,10 +361,28 @@ function openEditModal(id) {
   openJsonEditor();
   clearJsonSearch();
   validateJson();
+  _searchPinned    = false;
+  _scrollThreshold = null;
   $('#ruleModal').style.display = 'flex';
+  setupSearchScroll();
 }
 
 function closeModal() {
+  _searchPinned    = false;
+  _scrollThreshold = null;
+  const wrap = $('#jsonSearchWrap');
+  if (wrap) {
+    const bar = wrap.querySelector('.json-search-bar');
+    if (bar) { bar.style.position = ''; bar.style.top = ''; bar.style.left = ''; bar.style.width = ''; }
+    wrap.classList.remove('is-pinned');
+    const ph = wrap.querySelector('.json-search-placeholder');
+    if (ph) ph.remove();
+  }
+  const modalBody = $('#ruleModal')?.querySelector('.modal-body');
+  if (modalBody && _searchScrollHandler) {
+    modalBody.removeEventListener('scroll', _searchScrollHandler);
+    _searchScrollHandler = null;
+  }
   $('#ruleModal').style.display = 'none';
   currentEditId = null;
   destroyJsonEditor();
@@ -751,7 +772,66 @@ function destroyJsonEditor() {
   clearJsonSearch();
 }
 
-// ---- JSON Field Search ----
+// ---- JSON Field Search (auto-pins below modal-header after scroll) ----
+let _searchPinned    = false;
+let _scrollThreshold = null;
+let _searchScrollHandler = null;
+
+function syncSearchPin() {
+  const wrap      = $('#jsonSearchWrap');
+  const bar       = wrap?.querySelector('.json-search-bar');
+  const modalBody = $('#ruleModal')?.querySelector('.modal-body');
+  const modal     = $('#ruleModal')?.querySelector('.modal');
+  if (!wrap || !bar || !modalBody || !modal) return;
+
+  const st = modalBody.scrollTop;
+
+  const headerH  = (modal.querySelector('.modal-header')?.offsetHeight ?? 0);
+  const stickY   = modal.getBoundingClientRect().top + headerH;
+  const wrapTop  = wrap.getBoundingClientRect().top;
+
+  if (!_searchPinned && st > 0 && wrapTop <= stickY) {
+    // Pin: record threshold, remember wrap height, fix bar position
+    _searchPinned    = true;
+    _scrollThreshold = st;
+
+    const bodyRect  = modalBody.getBoundingClientRect();
+
+    wrap.classList.add('is-pinned');
+    if (!wrap.querySelector('.json-search-placeholder')) {
+      const ph = document.createElement('div');
+      ph.className = 'json-search-placeholder';
+      wrap.insertBefore(ph, wrap.firstChild);
+    }
+    wrap.querySelector('.json-search-placeholder').style.height = wrap.offsetHeight + 'px';
+
+    bar.style.position = 'fixed';
+    bar.style.top      = stickY + 'px';
+    bar.style.left     = bodyRect.left + 'px';
+    bar.style.width    = bodyRect.width + 'px';
+
+  } else if (_searchPinned && st <= _scrollThreshold) {
+    // Unpin: restore bar, remove placeholder
+    _searchPinned    = false;
+    _scrollThreshold = null;
+    wrap.classList.remove('is-pinned');
+    bar.style.position = '';
+    bar.style.top      = '';
+    bar.style.left     = '';
+    bar.style.width    = '';
+    const ph = wrap.querySelector('.json-search-placeholder');
+    if (ph) ph.remove();
+  }
+}
+
+function setupSearchScroll() {
+  const modalBody = $('#ruleModal')?.querySelector('.modal-body');
+  if (!modalBody) return;
+  if (_searchScrollHandler) modalBody.removeEventListener('scroll', _searchScrollHandler);
+  _searchScrollHandler = () => syncSearchPin();
+  modalBody.addEventListener('scroll', _searchScrollHandler, { passive: true });
+}
+
 function handleJsonSearchInput() {
   const query = ($('#jsonFieldSearch').value || '').trim();
   const textarea = $('#ruleBody');
