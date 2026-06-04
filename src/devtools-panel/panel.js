@@ -445,10 +445,15 @@ async function handleImport() {
 function sendMessage(msg) {
   return new Promise(resolve => {
     const timer = setTimeout(() => resolve({}), 5000);
-    chrome.runtime.sendMessage(msg, res => {
+    try {
+      chrome.runtime.sendMessage(msg, res => {
+        clearTimeout(timer);
+        resolve(res || {});
+      });
+    } catch {
       clearTimeout(timer);
-      resolve(res || {});
-    });
+      resolve({});
+    }
   });
 }
 

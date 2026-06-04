@@ -83,7 +83,10 @@
   async function handleMockedResponse(request, rule) {
     const delay = rule.delay || 0;
     if (delay > 0) await new Promise(r => setTimeout(r, delay));
-    const body = rule.responseBody || '{}';
+    const rawBody = rule.responseBody;
+    const body = typeof rawBody === 'object' && rawBody !== null
+      ? JSON.stringify(rawBody)
+      : (typeof rawBody === 'string' ? rawBody : '{}');
     const headers = new Headers({
       'Content-Type': 'application/json; charset=utf-8',
       ...(rule.responseHeaders || {}),
@@ -97,10 +100,14 @@
   }
 
   function handleMockedResponseSync(rule, method, url) {
+    const rawBody = rule.responseBody;
+    const body = typeof rawBody === 'object' && rawBody !== null
+      ? JSON.stringify(rawBody)
+      : (typeof rawBody === 'string' ? rawBody : '{}');
     return {
       mocked: true,
       status: rule.responseStatus || 200,
-      body: rule.responseBody || '{}',
+      body,
       headers: { 'Content-Type': 'application/json; charset=utf-8', ...(rule.responseHeaders || {}) },
     };
   }

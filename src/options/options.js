@@ -695,7 +695,16 @@ function ruleModalSetup() {
 // ---- Helpers ----
 function sendMessage(msg) {
   return new Promise(resolve => {
-    chrome.runtime.sendMessage(msg, res => resolve(res || {}));
+    const timer = setTimeout(() => resolve({}), 5000);
+    try {
+      chrome.runtime.sendMessage(msg, res => {
+        clearTimeout(timer);
+        resolve(res || {});
+      });
+    } catch {
+      clearTimeout(timer);
+      resolve({});
+    }
   });
 }
 
